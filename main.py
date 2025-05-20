@@ -1,47 +1,65 @@
-import os
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import FAISS
+from langchain_community.document_loaders import PyPDFLoader  # type: ignore
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain_ollama.embeddings import OllamaEmbeddings
+from langchain_ollama.llms import OllamaLLM
 from langchain.chains import RetrievalQA
-from langchain.llms import OpenAI
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-def carregar_textos(caminho_arquivo):
-    with open(caminho_arquivo, 'r', encoding='utf-8') as f:
-        return f.read()
 
-def criar_banco_vetorial(texto, chunk_size=500, chunk_overlap=50):
-    splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    chunks = splitter.split_text(texto)
+def carregar_e_processar_pdf(caminho_pdf: str, chunk_size: int = 1000, chunk_overlap: int = 100):
+    """
+    Carrega um PDF, divide em trechos e gera uma base vetorial usando FAISS e embeddings locais via Ollama.
+    """
+    print(f"Carregando PDF: {caminho_pdf}")
+    loader = PyPDFLoader(caminho_pdf)
+    documentos = loader.load_and_split()
 
-    embeddings = OpenAIEmbeddings()
-    vetor_db = FAISS.from_texts(chunks, embeddings)
+    print("Dividindo o conteúdo em chunks...")
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        separators=["\n\n", "\n", ".", " ", ""]
+    )
+    chunks = splitter.split_documents(documentos)
 
-    return vetor_db
+    print("Gerando embeddings e criando base vetorial...")
+    embeddings = OllamaEmbeddings(model="nomic-embed-text")
+    vectorstore = FAISS.from_documents(chunks, embeddings)
 
-def criar_retrieval_qa(vetor_db):
-    llm = OpenAI(temperature=0)
-    retriever = vetor_db.as_retriever(search_type="similarity", search_kwargs={"k": 3})
-    qa = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
-    return qa
+    return vectorstore
 
-def main():
-    # Carregar texto
-    texto = carregar_textos('../data/textos.txt')
 
-    # Criar banco vetorial
-    vetor_db = criar_banco_vetorial(texto)
+def criar_qa_chain(vectorstore):
+    """
+    Cria a cadeia de Pergunta e Resposta baseada em Recuperação com o modelo LLM via Ollama.
+    """
+    llm = OllamaLLM(model="llama3")
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
 
-    # Criar pipeline RetrievalQA
-    qa = criar_retrieval_qa(vetor_db)
+    qa_chain = RetrievalQA.from_chain_type(
+        llm=llm,
+        retriever=retriever,
+        chain_type="stuff"
+    )
+    return qa_chain
 
-    print("Sistema de Recuperação de Informações")
-    print("Digite 'sair' para encerrar.")
+
+def executar_chat_qa(caminho_pdf: str):
+    print("Sistema de Perguntas e Respostas baseado em PDF + Ollama iniciado!\n")
+
+    vectorstore = carregar_e_processar_pdf(caminho_pdf)
+    qa_chain = criar_qa_chain(vectorstore)
+
+    print("Digite sua pergunta ou 'sair' para encerrar.")
     while True:
-        pergunta = input("\nFaça sua pergunta: ")
-        if pergunta.lower() == 'sair':
+        pergunta = input("\nPergunta: ")
+        if pergunta.strip().lower() == "sair":
+            print("Encerrando o sistema.")
             break
-        resposta = qa.run(pergunta)
-        print("\nResposta:", resposta)
+
+        resposta = qa_chain.invoke(pergunta)
+        print("\nResposta:", resposta["result"])
+
 
 if __name__ == "__main__":
-    main()
+    executar_chat_qa("PPC_TSI_EaD.pdf")
