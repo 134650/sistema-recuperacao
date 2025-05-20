@@ -1,5 +1,24 @@
-Inteligência Artificial é uma área da ciência da computação que enfatiza a criação de máquinas inteligentes que funcionam e reagem como humanos.
+Remover arquivo textos.txt
 
-Redes neurais são modelos computacionais inspirados no cérebro humano que são capazes de aprender a partir de dados.
 
-Machine Learning é uma subárea da IA que utiliza algoritmos para que computadores aprendam padrões sem serem explicitamente programados.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
