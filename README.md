@@ -74,13 +74,8 @@ Ollama
 
 Python 3.10+
 
-📃 Licença
-Este projeto está licenciado sob a MIT License.
 
-yaml
 
----
 
-Se quiser, posso também gerar o conteúdo do `requirements.txt` com os pacotes corretos. Deseja isso agora?
 
 
