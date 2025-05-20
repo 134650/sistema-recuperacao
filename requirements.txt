@@ -1,4 +1,6 @@
-langchain
+langchain==0.2.1
+langchain-community==0.2.1
+langchain-text-splitters==0.2.1
+langchain-ollama==0.1.1
 faiss-cpu
-openai
-python-dotenv
+pypdf
